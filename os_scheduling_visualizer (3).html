@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OS Scheduling Visualizer</title>
+<style>
+:root{--bg:#0b1020;--panel:#141c31;--panel2:#1b2741;--text:#eef3ff;--muted:#9eacc8;--line:#2b3958;--cyan:#54d6e8;--purple:#a78bfa;--pink:#fb7ca8;--green:#6ee7b7;--yellow:#facc75}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0%,#1c2b50 0,transparent 35%),var(--bg);font-family:Inter,Segoe UI,Arial,sans-serif;color:var(--text)}
+header{padding:28px max(5vw,22px) 22px;border-bottom:1px solid var(--line);background:#0b1020cc}
+.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+h1{margin:8px 0;font-size:clamp(27px,4vw,42px)}header p{margin:0;color:var(--muted)}
+main{max-width:1200px;margin:26px auto;padding:0 20px 50px}
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}.tab{border:1px solid var(--line);background:var(--panel);color:var(--muted);padding:11px 17px;border-radius:12px;cursor:pointer;font-weight:700}.tab.active{background:var(--cyan);color:#07121e;border-color:var(--cyan)}
+.section{display:none}.section.active{display:block}
+.card{background:linear-gradient(145deg,var(--panel),#11192b);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:0 12px 35px #0002}
+.card h2{font-size:19px;margin:0 0 16px}.card h3{font-size:15px;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:13px}
+label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:7px}
+input,select{width:100%;background:#0b1325;border:1px solid var(--line);border-radius:10px;padding:11px;color:var(--text);outline:none}
+input:focus,select:focus{border-color:var(--cyan)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+button{border:0;border-radius:10px;padding:10px 15px;font-weight:800;cursor:pointer;background:var(--cyan);color:#06121c}
+button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+button.pink{background:var(--pink);color:#21101a}button:disabled{opacity:.35;cursor:not-allowed}
+.note{color:var(--muted);font-size:12px;line-height:1.5;margin-top:10px}
+.error{color:#ff9bac;font-size:13px;margin-top:10px;min-height:18px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:#0c1528;border:1px solid var(--line);border-radius:14px;padding:14px}.stat span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px}.stat strong{display:block;font-size:24px;margin-top:5px;color:var(--cyan)}
+.sequence{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.chip{background:#263653;border:1px solid #3a5075;border-radius:9px;padding:8px 11px;font-weight:800}.arrow{color:var(--yellow)}
+.graph{width:100%;overflow-x:auto;background:#0a1324;border:1px solid var(--line);border-radius:12px;padding:10px}.graph svg{display:block;min-width:620px;width:100%;height:260px}
+.bars{display:grid;gap:12px}.barrow{display:grid;grid-template-columns:75px 1fr 55px;gap:10px;align-items:center;font-size:13px}.track{height:13px;border-radius:20px;background:#27334c;overflow:hidden}.fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--purple),var(--cyan))}
+.tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:center;padding:10px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:11px;text-transform:uppercase}
+.gantt{display:flex;overflow-x:auto;padding:12px 0;min-height:82px;align-items:stretch}.gantt-block{min-width:55px;flex:1;border-right:2px solid #10182a;background:#33476a;padding:12px 5px;text-align:center;font-weight:800;position:relative}.gantt-block:nth-child(4n+2){background:#66569a}.gantt-block:nth-child(4n+3){background:#267b85}.gantt-block:nth-child(4n){background:#9b5270}.gantt-block small{display:block;font-size:10px;font-weight:500;margin-top:7px;color:#fff}
+.process-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-top:10px}.process-row>div{background:#0c1528;padding:10px;border-radius:10px;border:1px solid var(--line)}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
+@media(max-width:600px){main{padding:0 12px 35px}.card{padding:15px}.barrow{grid-template-columns:58px 1fr 42px}.tabs{gap:6px}.tab{padding:9px 11px;font-size:12px}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">Operating Systems · Interactive Learning Tool</div><h1>OS Scheduling Visualizer</h1><p>Explore disk and CPU scheduling through step-by-step simulations.</p></header>
+<main>
+<div class="tabs">
+<button class="tab active" data-tab="disk">Disk Scheduling</button>
+<button class="tab" data-tab="cpu">CPU Scheduling</button>
+<button class="tab" data-tab="about">How it works</button>
+</div>
+
+<section id="disk" class="section active">
+<div class="card">
+<h2>⚙ Disk scheduling inputs</h2>
+<div class="grid">
+<div><label>Disk cylinders (0 to N−1)</label><input id="diskSize" type="number" min="2" value="200"></div>
+<div><label>Initial head position</label><input id="head" type="number" value="50"></div>
+<div><label>Request queue (comma-separated)</label><input id="requests" value="82, 170, 43, 140, 24, 16, 190"></div>
+<div><label>Direction (SCAN / C-SCAN / LOOK)</label><select id="direction"><option value="right">Right (towards higher cylinders)</option><option value="left">Left (towards lower cylinders)</option></select></div>
+<div><label>Algorithm</label><select id="diskAlgo"><option>FCFS</option><option>SSTF</option><option>SCAN</option><option>C-SCAN</option><option>LOOK</option></select></div>
+</div>
+<div class="actions"><button onclick="runDisk()">Run simulation</button><button class="secondary" onclick="compareDisk()">Compare all algorithms</button><button class="secondary" onclick="loadDiskSample()">Load sample input</button></div>
+<div class="error" id="diskError"></div>
+<p class="note">Tip: the assignment sample uses cylinders 0–199, head 50 and requests 82, 170, 43, 140, 24, 16, 190.</p>
+</div>
+<div class="stats">
+<div class="stat"><span>Total head movement</span><strong id="movement">—</strong></div>
+<div class="stat"><span>Requests served</span><strong id="served">—</strong></div>
+<div class="stat"><span>Current step</span><strong id="diskStep">—</strong></div>
+</div>
+<div class="card"><h2>Head movement sequence</h2><div id="sequence" class="sequence">Run a simulation to see the service order.</div></div>
+<div class="card"><h2>Seek graph · cylinder vs. request order</h2><div class="graph" id="seekGraph">The graph will appear here.</div><div class="actions"><button class="secondary" id="prevDisk" onclick="stepDisk(-1)" disabled>← Previous</button><button onclick="stepDisk(1)" id="nextDisk" disabled>Next →</button><button class="secondary" id="playDisk" onclick="toggleDiskPlay()" disabled>▶ Auto play</button></div><p class="note" id="diskExplain">Each step moves the disk head to the next cylinder.</p></div>
+<div class="card"><h2>Algorithm comparison</h2><div class="bars" id="comparison"><p class="note">Select “Compare all algorithms” to compare total head movement for the same input.</p></div></div>
+</section>
+
+<section id="cpu" class="section">
+<div class="card">
+<h2>🧠 CPU scheduling inputs</h2>
+<div class="grid">
+<div><label>Algorithm</label><select id="cpuAlgo"><option value="FCFS">FCFS (non-preemptive)</option><option value="RR">Round Robin</option></select></div>
+<div><label>Time quantum (Round Robin)</label><input id="quantum" type="number" min="1" value="2"></div>
+<div><label>Processes (one per line: ID, arrival, burst)</label><textarea id="processes" rows="5" style="width:100%;background:#0b1325;border:1px solid var(--line);border-radius:10px;padding:11px;color:var(--text)">P1,0,5
+P2,1,3
+P3,2,1
+P4,3,2</textarea></div>
+</div>
+<div class="actions"><button onclick="runCPU()">Run CPU simulation</button><button class="secondary" onclick="loadCPUSample()">Load sample input</button></div>
+<div class="error" id="cpuError"></div>
+<p class="note">Enter process ID, arrival time and burst time separated by commas. Example: P1,0,5.</p>
+</div>
+<div class="stats">
+<div class="stat"><span>Average waiting time</span><strong id="avgWait">—</strong></div>
+<div class="stat"><span>Average turnaround</span><strong id="avgTurn">—</strong></div>
+<div class="stat"><span>Total CPU time</span><strong id="cpuTotal">—</strong></div>
+</div>
+<div class="card"><h2>Animated Gantt chart</h2><div class="gantt" id="gantt">Run the CPU simulation to see the Gantt chart.</div><div class="actions"><button class="secondary" onclick="stepCPU(-1)" id="prevCPU" disabled>← Previous</button><button onclick="stepCPU(1)" id="nextCPU" disabled>Next →</button><button class="secondary" onclick="toggleCPUPlay()" id="playCPU" disabled>▶ Auto play</button></div><p class="note" id="cpuExplain">The chart displays the order and time interval in which processes use the CPU. IDLE indicates an empty ready queue.</p></div>
+<div class="card"><h2>Process performance metrics</h2><div class="tablewrap"><table><thead><tr><th>Process</th><th>Arrival</th><th>Burst</th><th>Completion</th><th>Turnaround</th><th>Waiting</th></tr></thead><tbody id="metrics"><tr><td colspan="6">Run a simulation to see the metrics.</td></tr></tbody></table></div></div>
+</section>
+
+<section id="about" class="section">
+<div class="card"><h2>About this visualizer</h2>
+<p>This single-page learning tool demonstrates five disk scheduling algorithms and two CPU scheduling algorithms.</p>
+<h3>Disk scheduling</h3><p class="note">FCFS serves requests in arrival order. SSTF selects the nearest pending request. SCAN moves to the disk boundary before reversing. C-SCAN moves in one direction, jumps to the opposite boundary and continues. LOOK reverses at the last pending request instead of travelling to the physical boundary.</p>
+<h3>CPU scheduling</h3><p class="note">FCFS executes processes in arrival order without preemption. Round Robin gives each ready process a fixed time quantum and moves unfinished processes to the back of the queue.</p>
+<h3>Metrics</h3><p class="note">Turnaround time = Completion time − Arrival time. Waiting time = Turnaround time − Burst time. Average values are calculated across all processes.</p>
+<h3>Input validation</h3><p class="note">Disk requests and head positions must be within the selected cylinder range. CPU arrival times must be zero or greater, and burst times and the Round Robin quantum must be positive.</p>
+</div>
+</section>
+<footer>OS Scheduling Visualizer · Built with HTML, CSS and JavaScript</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab,.section').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.tab).classList.add('active')}));
+let diskRun=null,diskIndex=0,diskTimer=null,cpuRun=null,cpuIndex=0,cpuTimer=null;
+function diskInput(){let size=Number($('diskSize').value),head=Number($('head').value),req=$('requests').value.split(',').map(x=>x.trim()).filter(x=>x!=='').map(Number);if(!Number.isInteger(size)||size<2)throw Error('Disk size must be an integer greater than 1.');if(!Number.isInteger(head)||head<0||head>=size)throw Error('Head position must be between 0 and '+(size-1)+'.');if(!req.length||req.some(x=>!Number.isInteger(x)||x<0||x>=size))throw Error('Enter valid integer requests between 0 and '+(size-1)+'.');return{size,head,req,dir:$('direction').value}}
+function makeDisk(algo,d){let order=[d.head],remaining=[...d.req],moves=0,served=[];
+ const add=x=>{order.push(x);moves+=Math.abs(order[order.length-2]-x);served.push(x)};
+ if(algo==='FCFS'){d.req.forEach(add)}
+ if(algo==='SSTF'){let cur=d.head;while(remaining.length){remaining.sort((a,b)=>Math.abs(a-cur)-Math.abs(b-cur));let x=remaining.shift();add(x);cur=x}}
+ if(algo==='SCAN'||algo==='LOOK'||algo==='C-SCAN'){let sorted=[...new Set(remaining)].sort((a,b)=>a-b);let low=sorted.filter(x=>x<d.head),high=sorted.filter(x=>x>=d.head);if(d.dir==='right'){high.forEach(add);if(algo==='SCAN'){if(order.at(-1)!==d.size-1)add(d.size-1);low.reverse().forEach(add)}else if(algo==='LOOK'){low.reverse().forEach(add)}else{if(order.at(-1)!==d.size-1)add(d.size-1);if(order.at(-1)!==0)add(0);low.forEach(add)}}else{low.reverse().forEach(add);if(algo==='SCAN'){if(order.at(-1)!==0)add(0);high.forEach(add)}else if(algo==='LOOK'){high.forEach(add)}else{if(order.at(-1)!==0)add(0);if(order.at(-1)!==d.size-1)add(d.size-1);high.reverse().forEach(add)}}}
+ // For repeated cylinder requests, append them as separate services in FCFS/SSTF; directional algorithms service each requested cylinder once.
+ return{algo,order,moves,served,steps:order.map((v,i)=>({pos:v,from:i?order[i-1]:v,move:i?Math.abs(v-order[i-1]):0}))}}
+function runDisk(){stopDiskPlay();try{let d=diskInput(),r=makeDisk($('diskAlgo').value,d);diskRun=r;diskIndex=0;$('diskError').textContent='';$('movement').textContent=r.moves;$('served').textContent=d.req.length;$('comparison').innerHTML='<p class="note">Click “Compare all algorithms” to display the comparison chart.</p>';renderDisk()}catch(e){$('diskError').textContent=e.message}}
+function renderDisk(){if(!diskRun)return;let r=diskRun,i=diskIndex;$('diskStep').textContent=(i+1)+' / '+r.order.length;$('prevDisk').disabled=i===0;$('nextDisk').disabled=i===r.order.length-1;$('playDisk').disabled=r.order.length<2;$('sequence').innerHTML=r.order.map((x,j)=>`<span class="chip" style="${j===i?'border-color:var(--cyan);color:var(--cyan)':''}">${x}</span>${j<r.order.length-1?'<span class="arrow">→</span>':''}`).join('');$('diskExplain').textContent=i===0?'Initial head position: '+r.order[0]+'.':`Step ${i}: head moves from cylinder ${r.order[i-1]} to ${r.order[i]}, a movement of ${r.steps[i].move} cylinders.`;
+let max=Math.max(...r.order,1),min=Math.min(...r.order,0),pad=45,w=900,h=250,points=r.order.map((v,j)=>[pad+j*(w-2*pad)/Math.max(1,r.order.length-1),h-35-(v/max)*(h-70)]);let poly=points.map(p=>p.join(',')).join(' ');let circles=points.map((p,j)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${j===i?7:4}" fill="${j===i?'#54d6e8':'#a78bfa'}"/><text x="${p[0]}" y="${p[1]-12}" text-anchor="middle" fill="#dce7ff" font-size="11">${r.order[j]}</text>`).join('');let labels=points.map((p,j)=>`<text x="${p[0]}" y="235" text-anchor="middle" fill="#9eacc8" font-size="10">${j}</text>`).join('');$('seekGraph').innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Disk head movement graph"><line x1="${pad}" y1="20" x2="${pad}" y2="${h-35}" stroke="#43516d"/><line x1="${pad}" y1="${h-35}" x2="${w-pad}" y2="${h-35}" stroke="#43516d"/><polyline points="${poly}" fill="none" stroke="#54d6e8" stroke-width="3" stroke-linejoin="round"/>${circles}${labels}<text x="8" y="18" fill="#9eacc8" font-size="11">Cylinder</text><text x="${w/2}" y="249" fill="#9eacc8" font-size="11" text-anchor="middle">Request order (step)</text></svg>`}
+function stepDisk(n){if(!diskRun)return;diskIndex=Math.max(0,Math.min(diskRun.order.length-1,diskIndex+n));renderDisk()}
+function toggleDiskPlay(){if(diskTimer){stopDiskPlay();return}if(diskIndex>=diskRun.order.length-1)diskIndex=0;$('playDisk').textContent='❚❚ Pause';diskTimer=setInterval(()=>{if(diskIndex>=diskRun.order.length-1){stopDiskPlay();return}stepDisk(1)},800)}
+function stopDiskPlay(){if(diskTimer)clearInterval(diskTimer);diskTimer=null;if($('playDisk'))$('playDisk').textContent='▶ Auto play'}
+function compareDisk(){try{let d=diskInput(),names=['FCFS','SSTF','SCAN','C-SCAN','LOOK'],results=names.map(a=>({name:a,moves:makeDisk(a,d).moves})),max=Math.max(...results.map(x=>x.moves),1);$('comparison').innerHTML=results.map(x=>`<div class="barrow"><b>${x.name}</b><div class="track"><div class="fill" style="width:${x.moves/max*100}%"></div></div><b>${x.moves}</b></div>`).join('');$('diskError').textContent='Comparison calculated using the same disk input.'}catch(e){$('diskError').textContent=e.message}}
+function loadDiskSample(){$('diskSize').value=200;$('head').value=50;$('requests').value='82, 170, 43, 140, 24, 16, 190';$('direction').value='right';$('diskAlgo').value='FCFS';runDisk();compareDisk()}
+function parseProcesses(){let rows=$('processes').value.trim().split(/\n+/).map(line=>line.split(',').map(x=>x.trim()));if(!rows.length)throw Error('Enter at least one process.');let ps=rows.map(r=>({id:r[0],arrival:Number(r[1]),burst:Number(r[2])}));if(ps.some(p=>!p.id||!Number.isFinite(p.arrival)||!Number.isInteger(p.arrival)||p.arrival<0||!Number.isFinite(p.burst)||!Number.isInteger(p.burst)||p.burst<=0))throw Error('Each line must contain ID, non-negative integer arrival time and positive integer burst time.');if(new Set(ps.map(p=>p.id)).size!==ps.length)throw Error('Process IDs must be unique.');return ps}
+function scheduleFCFS(ps){let sorted=[...ps].sort((a,b)=>a.arrival-b.arrival),time=0,segments=[],metrics={};for(let p of sorted){if(time<p.arrival){segments.push({id:'IDLE',start:time,end:p.arrival});time=p.arrival}let start=time;time+=p.burst;segments.push({id:p.id,start,end:time});metrics[p.id]={completion:time,turnaround:time-p.arrival,waiting:time-p.arrival-p.burst}}return{segments,metrics}}
+function scheduleRR(ps,q){let sorted=[...ps].sort((a,b)=>a.arrival-b.arrival),remain={},metrics={},segments=[],queue=[],idx=0,time=0;ps.forEach(p=>remain[p.id]=p.burst);while(idx<sorted.length||queue.length){if(!queue.length&&idx<sorted.length&&time<sorted[idx].arrival){segments.push({id:'IDLE',start:time,end:sorted[idx].arrival});time=sorted[idx].arrival}while(idx<sorted.length&&sorted[idx].arrival<=time)queue.push(sorted[idx++]);let p=queue.shift(),run=Math.min(q,remain[p.id]),start=time;time+=run;remain[p.id]-=run;segments.push({id:p.id,start,end:time});while(idx<sorted.length&&sorted[idx].arrival<=time)queue.push(sorted[idx++]);if(remain[p.id]>0)queue.push(p);else metrics[p.id]={completion:time,turnaround:time-p.arrival,waiting:time-p.arrival-p.burst}}return{segments,metrics}}
+function runCPU(){stopCPUPlay();try{let ps=parseProcesses(),algo=$('cpuAlgo').value,q=Number($('quantum').value);if(algo==='RR'&&(!Number.isInteger(q)||q<=0))throw Error('Time quantum must be a positive integer.');let result=algo==='RR'?scheduleRR(ps,q):scheduleFCFS(ps);let totalWait=ps.reduce((s,p)=>s+result.metrics[p.id].waiting,0),totalTurn=ps.reduce((s,p)=>s+result.metrics[p.id].turnaround,0);cpuRun={...result,ps};cpuIndex=0;$('cpuError').textContent='';$('avgWait').textContent=(totalWait/ps.length).toFixed(2);$('avgTurn').textContent=(totalTurn/ps.length).toFixed(2);$('cpuTotal').textContent=result.segments.at(-1).end;$('metrics').innerHTML=ps.map(p=>{let m=result.metrics[p.id];return `<tr><td>${p.id}</td><td>${p.arrival}</td><td>${p.burst}</td><td>${m.completion}</td><td>${m.turnaround}</td><td>${m.waiting}</td></tr>`}).join('');renderCPU()}catch(e){$('cpuError').textContent=e.message}}
+function renderCPU(){if(!cpuRun)return;let seg=cpuRun.segments,i=cpuIndex;$('gantt').innerHTML=seg.slice(0,i+1).map((s,j)=>`<div class="gantt-block" style="min-width:${Math.max(55,(s.end-s.start)*45)}px;outline:${j===i?'2px solid var(--yellow)':'none'}">${s.id}<small>${s.start} – ${s.end}</small></div>`).join('');$('prevCPU').disabled=i===0;$('nextCPU').disabled=i===seg.length-1;$('playCPU').disabled=seg.length<2;$('cpuExplain').textContent=`Showing ${i+1} of ${seg.length} time slices. ${seg[i].id} runs from time ${seg[i].start} to ${seg[i].end}.`}
+function stepCPU(n){if(!cpuRun)return;cpuIndex=Math.max(0,Math.min(cpuRun.segments.length-1,cpuIndex+n));renderCPU()}
+function toggleCPUPlay(){if(cpuTimer){stopCPUPlay();return}if(cpuIndex>=cpuRun.segments.length-1)cpuIndex=0;$('playCPU').textContent='❚❚ Pause';cpuTimer=setInterval(()=>{if(cpuIndex>=cpuRun.segments.length-1){stopCPUPlay();return}stepCPU(1)},800)}
+function stopCPUPlay(){if(cpuTimer)clearInterval(cpuTimer);cpuTimer=null;if($('playCPU'))$('playCPU').textContent='▶ Auto play'}
+function loadCPUSample(){$('processes').value='P1,0,5\nP2,1,3\nP3,2,1\nP4,3,2';$('cpuAlgo').value='FCFS';$('quantum').value=2;runCPU()}
+loadDiskSample();loadCPUSample();
+</script>
+</body>
+</html>
